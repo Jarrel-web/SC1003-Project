@@ -1,44 +1,95 @@
 import csv
-student_list =[]
-tutGrps_list = []
-def populateTutGrpsDict(tutorialGrpsDict, studentList):
-    index = 0
-    #Gets all the keys in the dict and typecast as a list
-    tutorialGrpsDictKeys = list(tutorialGrpsDict.keys())
-    for student in studentList:
-        # Works in the premise that the students are sorted by tutorial groups already
-        if(student.get('tutorialGrp') == tutorialGrpsDictKeys[index]):
-            tutorialGrpsDict[tutorialGrpsDictKeys[index]].append(student)
+import itertools
+
+tutorial_groups = {}
+
+# Read the CSV file
+def read_csvfile(filename):
+    allstudents = []
+    with open(filename, 'r') as file:
+        csv_reader = csv.DictReader(file)
+        for row in csv_reader:
+            allstudents.append({
+                'Tutorial Group': row['Tutorial Group'],
+                'Student ID': row['Student ID'],
+                'School': row['School'],
+                'Name': row['Name'],
+                'Gender': row['Gender'],
+                'CGPA': float(row['CGPA'])
+            })
+    return allstudents
+    
+
+def groupbasedontutgrp(students): # Group students by tutorial group 
+    list_of_sch = []
+    for i in students:
+        if i["School"] not in list_of_sch:
+            list_of_sch.append(i["School"])
+    print(len(list_of_sch)) #18 schools
+    
+
+    for student in students: #For each student in student, the tutgroup will append the student based on said tutorial group
+        tutgroup = student['Tutorial Group']
+        if tutgroup not in tutorial_groups: #if tutgroup is not stated, it will create a new one
+            tutorial_groups[tutgroup] = []
+        tutorial_groups[tutgroup].append(student) 
+        #e.g student {'Tutorial Group': 'G-10', 'Student ID': '3329', 
+        #'School': 'MAE', 'Name': 'Adrian Castillo', 'Gender': 'Male', 'CGPA': 4.07} student is a dict in a list
+    #print(tutorial_groups["G-10"]) #to pull out one tutorial group, access it like dictionary key
+
+    # Print the number of students and tutorial groups
+    #print(f"Total number of students: {len(students)}")
+    #print(f"Total number of tutorial groups: {len(tutorial_groups)}")
+
+    return tutorial_groups
+
+
+def analyze_and_sort_by_gender_cgpa(students):
+    
+    males = []
+    females = []
+    #Sort students based on gender and split them into 2 list: males and females
+    for s in students:
+        if s['Gender'] == 'Male':
+            males.append(s)
         else:
-            index += 1
-            tutorialGrpsDict[tutorialGrpsDictKeys[index]].append(student)
-
-with open('data/records.csv',mode='r') as file:
-    studentRecordFile = csv.reader(file)
-    next(studentRecordFile,None) #skip the header#
-    for lines in studentRecordFile:
-        #Shows the format of each row in the csv
-        print(lines)
-        #Gets all the tutorial groups into a list, see line 30
-        if(lines[0] not in tutGrps_list):
-            tutGrps_list.append(lines[0])
-        studentInfo = {
-            'tutorialGrp':lines[0],
-            'id':lines[1],
-            'school':lines[2],
-            'name':lines[3],
-            'gender':lines[4],
-            'gpa':lines[5],
-        }
-        student_list.append(studentInfo)
-print(tutGrps_list)
-#creates a dict with a key:value pair where the key is the tutorial group and the value is a list 
-tutorialGrps_dict = { grp:[] for grp in tutGrps_list}
-populateTutGrpsDict(tutorialGrps_dict,student_list)
-#validate by checking if the students are actually from the group
-print(tutorialGrps_dict.get('G-99'))
+            females.append(s)
+    
+    #To assess between male to female ratio for all students in each tutorial group
+    male_ratio = len(males) / len(students) 
+    female_ratio = len(females) / len(students)
 
 
+    
+    # Sort males and females by CGPA from min to max, I use stackoverflow for this, may need to declare
+    males = sorted(males, key=lambda student: student['CGPA'])
+    females = sorted(females, key=lambda student: student['CGPA'])
 
-        
-        
+    #males.sort(key=lambda student: student['CGPA']) #another way to write to sort
+
+    #Bubble sort to ensure change in school
+    for group in range(len(males)):
+        for i in range(0, len(males)-group-1):
+            if males[i]['School'] == males[i+1]['School']:
+                males[i], males[i+1] = males[i+1],males[i]
+            
+
+    #for i in males:
+        #if i["Tutorial Group"] == "G-10":
+            #print(i)
+    
+    
+    #print(male_ratio, female_ratio)
+    
+    return males, females, male_ratio, female_ratio
+    
+
+def main():
+    # Read the CSV file, can shift it to main later
+    students = read_csvfile('records.csv')
+    tutorial_groups = groupbasedontutgrp(students)
+    # Analyze and sort students by gender and CGPA within each tutorial group
+    for group in tutorial_groups:
+        male, female, female_ratio, male_ratio = analyze_and_sort_by_gender_cgpa(tutorial_groups[group])
+
+main()
